@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Depths of Solcesto V4.0</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #ff9800;
+            --danger-color: #f44336;
+            --success-color: #4caf50;
+            --info-color: #2196f3;
+            --border-color: #333;
+            --dpad-bg: rgba(255, 255, 255, 0.1);
+            --dpad-btn: rgba(255, 255, 255, 0.2);
+            --dpad-btn-active: rgba(255, 152, 0, 0.6);
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        #game-header {
+            height: 60px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+
+        .stat-bar { font-size: 0.9rem; font-weight: bold; }
+        .hp-text { color: var(--danger-color); }
+        .mp-text { color: var(--info-color); }
+        .gold-text { color: var(--accent-color); }
+
+        /* MAIN VIEWPORT */
+        #game-viewport {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* CONTROLS AREA */
+        #controls-area {
+            height: 180px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        /* D-PAD */
+        #dpad {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            background: var(--dpad-bg);
+            border-radius: 50%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            padding: 5px;
+        }
+
+        .dpad-btn {
+            background: var(--dpad-btn);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .dpad-btn:active, .dpad-btn.active { background: var(--dpad-btn-active); }
+        .dpad-empty { visibility: hidden; }
+
+        /* ACTION BUTTONS */
+        #action-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 120px;
+        }
+
+        .action-btn {
+            background: #333;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .action-btn.primary { background: var(--accent-color); color: #000; }
+        .action-btn.danger { background: var(--danger-color); }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .modal-body { flex-grow: 1; overflow-y: auto; }
+        
+        .close-btn {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* ITEM LISTS IN MODALS */
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+        }
+        .item-row.common { border-left-color: #aaa; }
+        .item-row.rare { border-left-color: var(--info-color); }
+        .item-row.legendary { border-left-color: var(--accent-color); }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        /* COMBAT LOG OVERLAY */
+        #combat-log-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            height: 100px;
+            pointer-events: none;
+            display: none;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 20%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%);
+        }
+
+        .log-entry {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 4px 8px;
+            margin-top: 2px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .log-player { color: #81c784; }
+        .log-enemy { color: #e57373; }
+        .log-info { color: #64b5f6; }
+        .log-crit { color: #ffd54f; font-weight: bold; }
+
+        /* NOTIFICATIONS */
+        #notification-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            text-align: center;
+            z-index: 500;
+        }
+        .floating-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        /* START SCREEN */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        #start-screen h1 { color: var(--accent-color); font-size: 2.5rem; margin-bottom: 10px; }
+        #start-screen p { color: #aaa; margin-bottom: 30px; }
+        .class-select { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .class-card {
+            background: #333;
+            border: 2px solid #555;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .class-card:hover { transform: scale(1.05); border-color: var(--accent-color); }
+        .class-card.selected { border-color: var(--success-color); background: #2a3a2a; }
+
+    </style>
+</head>
+<body>
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+        <h1>Depths of Solcesto</h1>
+        <p>V4.0 - Roguelite Dungeon Crawler</p>
+        <h3>Escolha sua Classe</h3>
+        <div class="class-select" id="class-selection-container">
+            <!-- Generated by JS -->
+        </div>
+        <button id="btn-start-game" class="action-btn primary" style="margin-top: 20px; width: 200px; display:none;">INICIAR RUN</button>
+        <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
+            Toque para iniciar o áudio
+        </div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game-header">
+        <div class="stat-bar"><span class="hp-text">HP: <span id="ui-hp">0/0</span></span></div>
+        <div class="stat-bar"><span class="mp-text">MP: <span id="ui-mp">0/0</span></span></div>
+        <div class="stat-bar"><span class="gold-text">Ouro: <span id="ui-gold">0</span></span></div>
+        <div class="stat-bar">Andar: <span id="ui-floor">1</span></div>
+    </div>
+
+    <div id="game-viewport">
+        <canvas id="game-canvas"></canvas>
+        <div id="combat-log-container"></div>
+        <div id="notification-area"></div>
+    </div>
+
+    <div id="controls-area">
+        <div id="dpad">
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="up">▲</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="left">◀</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="right">▶</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="down">▼</button>
+            <div class="dpad-empty"></div>
+        </div>
+        <div id="action-panel">
+            <button class="action-btn" id="btn-inventory">Mochila (<span id="ui-inv-count">0</span>/6)</button>
+            <button class="action-btn" id="btn-skills">Skills</button>
+            <button class="action-btn primary" id="btn-wait">Esperar</button>
+            <button class="action-btn danger" id="btn-flee">Fugir</button>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Inventory Modal -->
+    <div id="modal-inventory" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">Inventário</div>
+            <div class="modal-body" id="inventory-list"></div>
+            <button class="close-btn" onclick="UI.closeModal('modal-inventory')">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Skills Modal -->
+    <div id="modal-skills" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">Habilidades</div>
+            <div class="modal-body" id="skills-list"></div>
+            <button class="close-btn" onclick="UI.closeModal('modal-skills')">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div id="modal-levelup" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">Nível Up!</div>
+            <div class="modal-body" style="text-align: center;">
+                <p>Você alcançou o nível <span id="lvlup-new-level" style="color:var(--accent-color); font-size:1.5rem;"></span></p>
+                <p>Escolha um atributo para melhorar:</p>
+                <div id="lvlup-options" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="modal-gameover" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="color: var(--danger-color);">GAME OVER</div>
+            <div class="modal-body" style="text-align: center;">
+                <p id="go-reason">Você morreu.</p>
+                <p>Ouro Total Acumulado: <span id="go-total-gold" class="gold-text"></span></p>
+                <p>Andar Alcançado: <span id="go-floor"></span></p>
+            </div>
+            <button class="action-btn primary" onclick="Game.restart()">Nova Run</button>
+            <button class="close-btn" onclick="location.reload()">Menu Principal</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * DEPTHS OF SOLCESTO V4.0
+ * Single File HTML5 Roguelite
+ */
+
+// --- AUDIO SYSTEM (Web Audio API) ---
+const AudioSys = {
+    ctx: null,
+    init: function() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    playTone: function(freq, type, duration, vol = 0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    sfx: {
+        step: () => AudioSys.playTone(100, 'triangle', 0.05, 0.05),
+        hit: () => AudioSys.playTone(150, 'sawtooth', 0.1, 0.1),
+        crit: () => { AudioSys.playTone(400, 'square', 0.1, 0.1); setTimeout(()=>AudioSys.playTone(600, 'square', 0.2, 0.1), 50); },
+        heal: () => AudioSys.playTone(300, 'sine', 0.3, 0.1),
+        error: () => AudioSys.playTone(80, 'sawtooth', 0.2, 0.2),
+        levelup: () => { 
+            [440, 554, 659, 880].forEach((f, i) => setTimeout(() => AudioSys.playTone(f, 'sine', 0.2, 0.1), i*100));
+        },
+        death: () => { 
+            [300, 250, 200, 150].forEach((f, i) => setTimeout(() => AudioSys.playTone(f, 'sawtooth', 0.4, 0.2), i*200));
+        }
+    }
+};
+
+// --- DATA DICTIONARIES ---
+
+const CLASS_DATA = {
+    "Guerreiro": {
+        baseStats: { hp: 120, mp: 10, atk: 12, def: 8, matk: 2, mdef: 4, agi: 4, luk: 4 },
+        skills: ["Golpe Pesado", "Grito de Guerra"],
+        evolution: ["Bárbaro", "Lorde"]
+    },
+    "Ladino": {
+        baseStats: { hp: 90, mp: 20, atk: 10, def: 5, matk: 4, mdef: 5, agi: 10, luk: 10 },
+        skills: ["Ataque Furtivo", "Evasão"],
+        evolution: ["Assassino", "Atirador"]
+    },
+    "Mago": {
+        baseStats: { hp: 70, mp: 50, atk: 4, def: 3, matk: 15, mdef: 10, agi: 6, luk: 6 },
+        skills: ["Bola de Fogo", "Escudo Arcano"],
+        evolution: ["Arquimago", "Necromante"]
+    },
+    // Desbloqueáveis (Placeholder logic handled in Meta)
+    "Paladino": { baseStats: { hp: 110, mp: 30, atk: 9, def: 9, matk: 8, mdef: 8, agi: 5, luk: 5 }, skills: ["Luz Sagrada", "Julgamento"], evolution: [] },
+    "Monge": { baseStats: { hp: 100, mp: 40, atk: 8, def: 6, matk: 6, mdef: 10, agi: 12, luk: 8 }, skills: ["Golpe Ki", "Meditação"], evolution: [] }
+};
+
+const ENEMY_TYPES = {
+    "Slime": { hp: 30, atk: 8, def: 2, matk: 0, mdef: 0, agi: 2, luk: 2, xp: 10, desc: "Gelatinoso e fraco." },
+    "Goblin": { hp: 45, atk: 12, def: 3, matk: 0, mdef: 0, agi: 6, luk: 8, xp: 15, desc: "Astuto e covarde." },
+    "Esqueleto": { hp: 50, atk: 14, def: 5, matk: 0, mdef: 10, agi: 4, luk: 2, xp: 20, desc: "Osso duro de roer." },
+    "Aranha Gigante": { hp: 60, atk: 16, def: 4, matk: 0, mdef: 0, agi: 10, luk: 5, xp: 25, desc: "Rápida e venenosa." },
+    "Fantasma": { hp: 40, atk: 18, def: 0, matk: 15, mdef: 20, agi: 8, luk: 10, xp: 30, desc: "Intangível e mágico." }
+};
+
+const BOSS_TYPES = {
+    "Dragão Menor": { hp: 300, atk: 25, def: 15, matk: 10, mdef: 10, agi: 8, luk: 5, xp: 200, phase2: "fly" },
+    "Lich": { hp: 250, atk: 15, def: 10, matk: 30, mdef: 25, agi: 5, luk: 10, xp: 200, phase2: "summon" },
+    "Gigante": { hp: 400, atk: 30, def: 20, matk: 0, mdef: 5, agi: 2, luk: 1, xp: 200, phase2: "rage" }
+};
+
+const ITEM_POOLS = {
+    weapons: [
+        { name: "Espada Curta", type: "weapon", atk: 5, val: 10 },
+        { name: "Machado de Batalha", type: "weapon", atk: 8, val: 20 },
+        { name: "Adaga Envenenada", type: "weapon", atk: 6, agi: 2, val: 25 },
+        { name: "Cajado de Carvalho", type: "weapon", matk: 8, val: 20 },
+        { name: "Espada Longa", type: "weapon", atk: 12, val: 40 }
+    ],
+    armors: [
+        { name: "Túnica de Couro", type: "armor", def: 3, val: 10 },
+        { name: "Cota de Malha", type: "armor", def: 6, val: 25 },
+        { name: "Armadura de Placas", type: "armor", def: 10, hp: 20, val: 50 },
+        { name: "Manto Místico", type: "armor", mdef: 8, matk: 4, val: 40 }
+    ],
+    accessories: [
+        { name: "Anel de Força", type: "accessory", atk: 2, val: 15 },
+        { name: "Amuleto da Vida", type: "accessory", hp: 30, val: 20 },
+        { name: "Botas de Velocidade", type: "accessory", agi: 3, val: 25 },
+        { name: "Olho da Sorte", type: "accessory", luk: 5, val: 30 }
+    ],
+    consumables: [
+        { name: "Poção de Cura", type: "consumable", effect: "heal", val: 50, stack: 1 },
+        { name: "Bomba", type: "consumable", effect: "damage_all", val: 40, stack: 1 },
+        { name: "Pergaminho de Teleporte", type: "consumable", effect: "teleport", val: 0, stack: 1 }
+    ]
+};
+
+const FLOOR_MODIFIERS = [
+    { id: "none", name: "Normal", desc: "Sem efeitos especiais." },
+    { id: "darkness", name: "Escuridão", desc: "Visão reduzida para 2 tiles." },
+    { id: "arcane", name: "Eco Arcano", desc: "Cooldowns reduzem em 1 turno extra." },
+    { id: "plague", name: "Peste", desc: "Cura reduzida em 50%." },
+    { id: "abundance", name: "Abundância", desc: "Ouro duplicado neste andar." }
+];
+
+// --- GAME STATE INITIALIZATION ---
+
+window.gameState = {
+    hero: {
+        className: "",
+        evolutionName: "",
+        level: 1,
+        xp: 0,
+        maxXp: 100,
+        gold: 0,
+        totalGoldEarned: 0,
+        stats: { hp: 100, maxHp: 100, mp: 20, maxMp: 20, atk: 10, def: 5, matk: 5, mdef: 5, agi: 5, luk: 5 },
+        bonusStats: { hp: 0, atk: 0, def: 0, matk: 0, mdef: 0, agi: 0, luk: 0 },
+        equipment: { weapon: null, armor: null, accessory: null },
+        inventory: [], // Max 6
+        consumable: null, // 1 slot
+        skills: [],
+        cooldowns: {},
+        buffs: [],
+        curses: [] // e.g., {name: "Weakness", stat: "atk", val: -5, duration: 3}
+    },
+    dungeon: {
+        floor: 1,
+        modifier: null,
+        map: [], // 2D array
+        playerPos: { x: 0, y: 0 },
+        visibleTiles: {}, // Key: "x,y", Value: true
+        stairsPos: { x: 0, y: 0 },
+        enemies: [] // List of active enemies on map {id, x, y, type, hp, maxHp, ...}
+    },
+    combat: {
+        active: false,
+        enemy: null, // Current combat target snapshot
+        log: [],
+        autoBattle: false,
+        turn: "player" // or "enemy"
+    },
+    meta: {
+        unlockedClasses: ["Guerreiro", "Ladino", "Mago"],
+        bestiary: {},
+        achievements: {},
+        totalGoldAllRuns: 0
+    },
+    flags: {
+        gameStarted: false,
+        selectedClass: null
+    }
+};
+
+// --- HERO CLASS & LOGIC ---
+
+const Hero = {
+    init: function(className) {
+        const data = CLASS_DATA[className];
+        window.gameState.hero.className = className;
+        window.gameState.hero.skills = [...data.skills];
+        window.gameState.hero.level = 1;
+        window.gameState.hero.xp = 0;
+        window.gameState.hero.maxXp = 100;
+        window.gameState.hero.gold = 0;
+        window.gameState.hero.inventory = [];
+        window.gameState.hero.equipment = { weapon: null, armor: null, accessory: null };
+        window.gameState.hero.consumable = null;
+        window.gameState.hero.curses = [];
+        window.gameState.hero.buffs = [];
+        
+        // Copy base stats
+        for (let key in data.baseStats) {
+            window.gameState.hero.stats[key] = data.baseStats[key];
+            window.gameState.hero.stats['max' + key.toUpperCase()] = data.baseStats[key];
+            if(key === 'hp' || key === 'mp') {
+                 window.gameState.hero.stats['max' + key.toUpperCase().replace('P','P')] = data.baseStats[key];
+            }
+        }
+        // Fix maxHp/maxMp naming convention manually to be safe
+        window.gameState.hero.stats.maxHp = data.baseStats.hp;
+        window.gameState.hero.stats.maxMp = data.baseStats.mp;
+
+        this.recalcStats();
+    },
+
+    // Core Function: Recalculate all effective stats based on items, buffs, curses
+    recalcStats: function() {
+        const hero = window.gameState.hero;
+        const base = CLASS_DATA[hero.className]?.baseStats || {};
+        
+        // Reset bonus stats
+        hero.bonusStats = { hp: 0, atk: 0, def: 0, matk: 0, mdef: 0, agi: 0, luk: 0 };
+
+        // 1. Add Equipment Bonuses
+        ['weapon', 'armor', 'accessory'].forEach(slot => {
+            const item = hero.equipment[slot];
+            if (item) {
+                for (let key in item) {
+                    if (key !== 'name' && key !== 'type' && key !== 'val' && key !== 'effect' && key !== 'stack') {
+                        if (hero.bonusStats.hasOwnProperty(key)) {
+                            hero.bonusStats[key] += item[key];
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Add Buffs
+        hero.buffs.forEach(buff => {
+            if (hero.bonusStats.hasOwnProperty(buff.stat)) {
+                hero.bonusStats[buff.stat] += buff.val;
+            }
+        });
+
+        // 3. Apply Curses (Penalties)
+        hero.curses.forEach(curse => {
+            if (hero.bonusStats.hasOwnProperty(curse.stat)) {
+                hero.bonusStats[curse.stat] += curse.val; // val is negative
+            }
+        });
+
+        // 4. Calculate Final Stats (Base + Bonus)
+        // We preserve current HP/MP ratios if possible, but max changes
+        const oldMaxHp = hero.stats.maxHp;
+        const oldMaxMp = hero.stats.maxMp;
+        const curHp = hero.stats.hp;
+        const curMp = hero.stats.mp;
+
+        hero.stats.maxHp = (base.hp || 0) + hero.bonusStats.hp;
+        hero.stats.maxMp = (base.mp || 0) + hero.bonusStats.mp;
+        hero.stats.atk = (base.atk || 0) + hero.bonusStats.atk;
+        hero.stats.def = (base.def || 0) + hero.bonusStats.def;
+        hero.stats.matk = (base.matk || 0) + hero.bonusStats.matk;
+        hero.stats.mdef = (base.mdef || 0) + hero.bonusStats.mdef;
+        hero.stats.agi = (base.agi || 0) + hero.bonusStats.agi;
+        hero.stats.luk = (base.luk || 0) + hero.bonusStats.luk;
+
+        // Adjust current HP/MP proportionally if max changed, or clamp
+        if (oldMaxHp > 0) hero.stats.hp = Math.min(hero.stats.maxHp, Math.floor(curHp * (hero.stats.maxHp / oldMaxHp)));
+        else hero.stats.hp = hero.stats.maxHp;
+
+        if (oldMaxMp > 0) hero.stats.mp = Math.min(hero.stats.maxMp, Math.floor(curMp * (hero.stats.maxMp / oldMaxMp)));
+        else hero.stats.mp = hero.stats.maxMp;
+    },
+
+    addXp: function(amount) {
+        const hero = window.gameState.hero;
+        hero.xp += amount;
+        if (hero.xp >= hero.maxXp) {
+            hero.xp -= hero.maxXp;
+            hero.maxXp = Math.floor(hero.maxXp * 1.5);
+            hero.level++;
+            UI.showLevelUp();
+            AudioSys.sfx.levelup();
+            return true; // Leveled up
+        }
+        return false;
+    },
+
+    addCurse: function(name, stat, val, duration) {
+        window.gameState.hero.curses.push({ name, stat, val, duration });
+        this.recalcStats();
+    },
+
+    removeCurses: function() {
+        window.gameState.hero.curses = [];
+        this.recalcStats();
+    },
+
+    tickCurses: function() {
+        let changed = false;
+        window.gameState.hero.curses = window.gameState.hero.curses.filter(c => {
+            c.duration--;
+            if (c.duration <= 0) changed = true;
+            return c.duration > 0;
+        });
+        if (changed) this.recalcStats();
+    },
+
+    useConsumable: function() {
+        const hero = window.gameState.hero;
+        if (!hero.consumable) return false;
+        
+        const item = hero.consumable;
+        let success = false;
+
+        if (item.effect === 'heal') {
+            let amount = item.val;
+            if (window.gameState.dungeon.modifier?.id === 'plague') amount = Math.floor(amount / 2);
+            hero.stats.hp = Math.min(hero.stats.maxHp, hero.stats.hp + amount);
+            AudioSys.sfx.heal();
+            success = true;
+        } else if (item.effect === 'damage_all') {
+            // Handled in combat logic mostly, but if used on map? Let's say it does nothing on map or reveals map
+            UI.log("A bomba explodiu sem alvo.", "info");
+            success = true; 
+        } else if (item.effect === 'teleport') {
+            MapGen.teleportPlayerToStairs();
+            success = true;
+        }
+
+        if (success) {
+            hero.consumable = null;
+            UI.updateHeader();
+            return true;
+        }
+        return false;
+    }
+};
+
+// --- FIM DA PARTE 1: ESTRUTURA E CLASSES ---
+
+// ============================================================================
+// PARTE 2: MOTORES DE GERAÇÃO, IA E COMBATE
+// ============================================================================
+
+/**
+ * SISTEMA DE GERAÇÃO PROCEDURAL DE DUNGEON
+ * Mapa 25x25 com salas retangulares conectadas por corredores.
+ */
+const DungeonGen = {
+    width: 25,
+    height: 25,
+    rooms: [],
+    
+    generate: function(floor) {
+        this.rooms = [];
+        // Inicializa mapa vazio (0 = parede, 1 = chão)
+        let map = Array(this.height).fill().map(() => Array(this.width).fill(0));
+        
+        // Gera salas aleatórias
+        const numRooms = 4 + Math.floor(Math.random() * 3); // 4-6 salas
+        for (let i = 0; i < numRooms; i++) {
+            const w = 3 + Math.floor(Math.random() * 4); // 3-6 largura
+            const h = 3 + Math.floor(Math.random() * 4); // 3-6 altura
+            const x = 1 + Math.floor(Math.random() * (this.width - w - 2));
+            const y = 1 + Math.floor(Math.random() * (this.height - h - 2));
+            
+            // Verifica sobreposição
+            let overlaps = false;
+            for (const room of this.rooms) {
+                if (x < room.x + room.w + 1 && x + w + 1 > room.x &&
+                    y < room.y + room.h + 1 && y + h + 1 > room.y) {
+                    overlaps = true;
+                    break;
+                }
+            }
+            if (!overlaps) {
+                const room = { x, y, w, h };
+                this.rooms.push(room);
+                // Escava sala
+                for (let ry = y; ry < y + h; ry++) {
+                    for (let rx = x; rx < x + w; rx++) {
+                        map[ry][rx] = 1;
+                    }
+                }
+            }
+        }
+        
+        // Conecta salas com corredores (L-shape)
+        for (let i = 1; i < this.rooms.length; i++) {
+            const prev = this.rooms[i - 1];
+            const curr = this.rooms[i];
+            const cx1 = Math.floor(prev.x + prev.w / 2);
+            const cy1 = Math.floor(prev.y + prev.h / 2);
+            const cx2 = Math.floor(curr.x + curr.w / 2);
+            const cy2 = Math.floor(curr.y + curr.h / 2);
+            
+            // Corredor horizontal primeiro
+            const minX = Math.min(cx1, cx2);
+            const maxX = Math.max(cx1, cx2);
+            for (let x = minX; x <= maxX; x++) {
+                map[cy1][x] = 1;
+            }
+            // Corredor vertical
+            const minY = Math.min(cy1, cy2);
+            const maxY = Math.max(cy1, cy2);
+            for (let y = minY; y <= maxY; y++) {
+                map[y][cx2] = 1;
+            }
+        }
+        
+        // Posiciona entidades
+        const entities = {};
+        
+        // Player na primeira sala
+        const startRoom = this.rooms[0];
+        const playerPos = { 
+            x: Math.floor(startRoom.x + startRoom.w / 2), 
+            y: Math.floor(startRoom.y + startRoom.h / 2) 
+        };
+        
+        // Escada na última sala
+        const endRoom = this.rooms[this.rooms.length - 1];
+        const stairsPos = { 
+            x: Math.floor(endRoom.x + endRoom.w / 2), 
+            y: Math.floor(endRoom.y + endRoom.h / 2) 
+        };
+        
+        // Espalha inimigos, baús e armadilhas nas outras salas
+        const enemyCount = 3 + Math.floor(floor * 0.5);
+        const chestCount = 1 + Math.floor(Math.random() * 2);
+        const trapCount = 2 + Math.floor(Math.random() * 2);
+        
+        for (let i = 1; i < this.rooms.length; i++) {
+            const room = this.rooms[i];
+            const centerX = Math.floor(room.x + room.w / 2);
+            const centerY = Math.floor(room.y + room.h / 2);
+            
+            // Adiciona inimigos
+            for (let e = 0; e < enemyCount && e < 3; e++) {
+                const pos = this.getRandomFloorInRoom(room, map);
+                if (pos) {
+                    const key = `${pos.x},${pos.y}`;
+                    if (!entities[key]) {
+                        entities[key] = { type: 'enemy', data: EnemySys.spawnEnemy(floor) };
+                    }
+                }
+            }
+        }
+        
+        // Adiciona baús em posições aleatórias no chão
+        for (let c = 0; c < chestCount; c++) {
+            const room = this.rooms[Math.floor(Math.random() * (this.rooms.length - 1)) + 1];
+            const pos = this.getRandomFloorInRoom(room, map);
+            if (pos) {
+                const key = `${pos.x},${pos.y}`;
+                if (!entities[key]) {
+                    entities[key] = { type: 'chest', data: ItemSys.generateItem(floor) };
+                }
+            }
+        }
+        
+        // Adiciona armadilhas
+        for (let t = 0; t < trapCount; t++) {
+            const room = this.rooms[Math.floor(Math.random() * this.rooms.length)];
+            const pos = this.getRandomFloorInRoom(room, map);
+            if (pos) {
+                const key = `${pos.x},${pos.y}`;
+                if (!entities[key]) {
+                    entities[key] = { type: 'trap', data: TRAP_TYPES[Math.floor(Math.random() * TRAP_TYPES.length)] };
+                }
+            }
+        }
+        
+        // Chance de sala secreta (contendo item raro ou ouro extra)
+        if (Math.random() < 0.15) {
+            const room = this.rooms[Math.floor(Math.random() * this.rooms.length)];
+            const pos = this.getRandomFloorInRoom(room, map);
+            if (pos) {
+                const key = `${pos.x},${pos.y}`;
+                if (!entities[key]) {
+                    entities[key] = { type: 'secret', data: { gold: floor * 20 } };
+                }
+            }
+        }
+        
+        return { map, playerPos, stairsPos, entities };
+    },
+    
+    getRandomFloorInRoom: function(room, map) {
+        for (let attempts = 0; attempts < 20; attempts++) {
+            const x = room.x + Math.floor(Math.random() * room.w);
+            const y = room.y + Math.floor(Math.random() * room.h);
+            if (map[y][x] === 1) {
+                return { x, y };
+            }
+        }
+        return null;
+    }
+};
+
+/**
+ * SISTEMA DE INIMIGOS E ESCALONAMENTO
+ */
+const EnemySys = {
+    spawnEnemy: function(floor) {
+        // Seleciona tipo baseado no andar (simples: aleatório por enquanto)
+        const types = Object.keys(ENEMY_TYPES);
+        const baseType = types[Math.floor(Math.random() * types.length)];
+        const base = ENEMY_TYPES[baseType];
+        
+        // Aplica escalonamento
+        const hpMult = 1 + (floor - 1) * 0.25;
+        const atkMult = 1 + (floor - 1) * 0.15;
+        const defMult = 1 + (floor - 1) * 0.10;
+        
+        let enemy = {
+            name: baseType,
+            maxHp: Math.floor(base.hp * hpMult),
+            hp: Math.floor(base.hp * hpMult),
+            atk: Math.floor(base.atk * atkMult),
+            def: Math.floor(base.def * defMult),
+            matk: base.matk,
+            mdef: base.mdef,
+            agi: base.agi,
+            luk: base.luk,
+            xp: base.xp + Math.floor(floor * 2),
+            skills: [],
+            isChampion: false,
+            isBoss: false,
+            isAtroz: false
+        };
+        
+        // Chance de Campeão (15%) - não em chefes
+        if (floor % 5 !== 0 && Math.random() < 0.15) {
+            enemy.isChampion = true;
+            enemy.name = "Campeão " + baseType;
+            enemy.maxHp = Math.floor(enemy.maxHp * 1.5);
+            enemy.hp = enemy.maxHp;
+            enemy.atk = Math.floor(enemy.atk * 1.5);
+            enemy.xp = Math.floor(enemy.xp * 1.5);
+            // Ganha skill extra se tiver
+            if (baseType === "Goblin" || baseType === "Esqueleto") {
+                enemy.skills.push("Contra-ataque");
+            }
+        }
+        
+        // Chefe a cada 5 andares
+        if (floor % 5 === 0) {
+            const bossTypes = ["Dragão Menor", "Lich", "Gigante"];
+            const bossName = bossTypes[Math.floor(Math.random() * bossTypes.length)];
+            const bossBase = BOSS_DATA[bossName] || ENEMY_TYPES["Esqueleto"];
+            
+            enemy = {
+                name: bossName,
+                maxHp: Math.floor(bossBase.hp * hpMult * 2),
+                hp: Math.floor(bossBase.hp * hpMult * 2),
+                atk: Math.floor(bossBase.atk * atkMult * 2),
+                def: Math.floor(bossBase.def * defMult),
+                matk: bossBase.matk || 0,
+                mdef: bossBase.mdef || 0,
+                agi: bossBase.agi || 5,
+                luk: bossBase.luk || 5,
+                xp: base.xp * 10 * floor,
+                skills: bossBase.skills || [],
+                isBoss: true,
+                isChampion: false,
+                isAtroz: false,
+                phase: 1
+            };
+            
+            // Chance de ser Atroz (30%)
+            if (Math.random() < 0.30) {
+                enemy.isAtroz = true;
+                enemy.name = "Atroz " + bossName;
+                enemy.maxHp = Math.floor(enemy.maxHp * 2);
+                enemy.hp = enemy.maxHp;
+                enemy.atk = Math.floor(enemy.atk * 2);
+                enemy.immuneToStun = true;
+            }
+        }
+        
+        return enemy;
+    }
+};
+
+const BOSS_DATA = {
+    "Dragão Menor": { hp: 200, atk: 25, def: 15, matk: 10, mdef: 10, agi: 8, luk: 5, skills: ["Bafo de Fogo", "Voo"] },
+    "Lich": { hp: 180, atk: 15, def: 10, matk: 30, mdef: 20, agi: 5, luk: 5, skills: ["Raio da Morte", "Invocar Lacaios"] },
+    "Gigante": { hp: 250, atk: 30, def: 20, matk: 0, mdef: 5, agi: 3, luk: 3, skills: ["Esmagar", "Fúria"] }
+};
+
+/**
+ * SISTEMA DE ITENS
+ */
+const ItemSys = {
+    generateItem: function(floor) {
+        const roll = Math.random();
+        let rarity = 'common';
+        if (roll > 0.85) rarity = 'rare';
+        if (roll > 0.95) rarity = 'legendary';
+        
+        const typeRoll = Math.random();
+        let itemType = 'weapon';
+        if (typeRoll > 0.4) itemType = 'armor';
+        if (typeRoll > 0.7) itemType = 'accessory';
+        
+        const prefixes = {
+            common: ["Simples", "Comum", "Velho"],
+            rare: ["Épico", "Encantado", "Rúnico"],
+            legendary: ["Lendário", "Divino", "Amaldiçoado"]
+        };
+        
+        const prefix = prefixes[rarity][Math.floor(Math.random() * prefixes[rarity].length)];
+        const baseStats = { atk: 0, def: 0, matk: 0, mdef: 0, hp: 0, agi: 0, luk: 0 };
+        
+        // Gera stats baseados no tipo e raridade
+        const mult = { common: 1, rare: 2, legendary: 4 };
+        const floorBonus = Math.floor(floor * 0.5);
+        
+        if (itemType === 'weapon') {
+            baseStats.atk = Math.floor((3 + Math.random() * 5) * mult[rarity] + floorBonus);
+        } else if (itemType === 'armor') {
+            baseStats.def = Math.floor((2 + Math.random() * 4) * mult[rarity] + floorBonus);
+            baseStats.hp = Math.floor((10 + Math.random() * 20) * mult[rarity] + floorBonus * 2);
+        } else {
+            baseStats.matk = Math.floor((2 + Math.random() * 4) * mult[rarity] + floorBonus);
+            baseStats.mdef = Math.floor((2 + Math.random() * 3) * mult[rarity] + floorBonus);
+            baseStats.luk = Math.floor((1 + Math.random() * 2) * mult[rarity]);
+        }
+        
+        return {
+            id: Date.now() + Math.random(),
+            name: `${prefix} ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
+            type: itemType,
+            rarity: rarity,
+            stats: baseStats,
+            value: floor * 5 * mult[rarity]
+        };
+    }
+};
+
+/**
+ * INTELIGÊNCIA ARTIFICIAL DE MOVIMENTAÇÃO
+ */
+const EnemyAI = {
+    update: function() {
+        const { dungeon, hero } = window.gameState;
+        if (!dungeon.entities) return;
+        
+        const playerX = dungeon.playerPos.x;
+        const playerY = dungeon.playerPos.y;
+        
+        // Itera sobre todas as entidades
+        for (const [key, entity] of Object.entries(dungeon.entities)) {
+            if (entity.type !== 'enemy') continue;
+            
+            const [ex, ey] = key.split(',').map(Number);
+            const dist = Math.abs(ex - playerX) + Math.abs(ey - playerY);
+            
+            // Só move se estiver visível (distância <= 8)
+            if (dist > 8) continue;
+            
+            const enemy = entity.data;
+            const shouldFlee = enemy.hp < enemy.maxHp * 0.25;
+            
+            let newX = ex;
+            let newY = ey;
+            
+            // Decide direção
+            if (shouldFlee) {
+                // Foge do jogador
+                if (ex < playerX) newX--;
+                else if (ex > playerX) newX++;
+                
+                if (ey < playerY) newY--;
+                else if (ey > playerY) newY++;
+            } else {
+                // Persegue o jogador
+                if (ex < playerX) newX++;
+                else if (ex > playerX) newX--;
+                
+                if (ey < playerY) newY++;
+                else if (ey > playerY) newY--;
+            }
+            
+            // Verifica colisão com paredes e outras entidades
+            if (dungeon.map[newY][newX] === 1 && !this.isEntityAt(newX, newY)) {
+                // Move
+                delete dungeon.entities[key];
+                dungeon.entities[`${newX},${newY}`] = entity;
+            }
+            
+            // Verifica emboscada: se inimigo moveu para a posição do jogador
+            if (newX === playerX && newY === playerY) {
+                Combat.startCombat(enemy, true); // true = emboscada
+                break; // Só um combate por vez
+            }
+        }
+    },
+    
+    isEntityAt: function(x, y) {
+        const { dungeon } = window.gameState;
+        if (!dungeon.entities) return false;
+        return !!dungeon.entities[`${x},${y}`];
+    }
+};
+
+/**
+ * SISTEMA DE COMBATE POR TURNOS
+ */
+const Combat = {
+    startCombat: function(enemy, isAmbush = false) {
+        const { combat, hero } = window.gameState;
+        combat.active = true;
+        combat.enemy = enemy;
+        combat.log = [];
+        combat.turn = isAmbush ? 'enemy' : 'player';
+        combat.autoBattle = false;
+        
+        // Remove inimigo do mapa
+        const { dungeon } = window.gameState;
+        for (const [key, entity] of Object.entries(dungeon.entities)) {
+            if (entity.type === 'enemy' && entity.data === enemy) {
+                delete dungeon.entities[key];
+                break;
+            }
+        }
+        
+        UI.showNotification(`Combate iniciado contra ${enemy.name}!`);
+        AudioSys.sfx.hit();
+        
+        if (isAmbush) {
+            UI.addLog(`Emboscada! ${enemy.name} ataca primeiro!`, 'log-enemy');
+            setTimeout(() => Combat.enemyTurn(), 500);
+        } else {
+            UI.addLog(`Seu turno!`, 'log-player');
+        }
+        
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    playerAction: function(action, targetSkill = null) {
+        const { combat, hero } = window.gameState;
+        if (!combat.active || combat.turn !== 'player') return;
+        
+        let acted = false;
+        
+        if (action === 'attack') {
+            Combat.executeAttack(hero, combat.enemy);
+            acted = true;
+        } else if (action === 'skill' && targetSkill) {
+            acted = Combat.useSkill(targetSkill);
+        } else if (action === 'item') {
+            acted = Hero.useConsumable();
+            if (acted) Combat.endPlayerTurn();
+        } else if (action === 'wait') {
+            UI.addLog('Você espera...', 'log-info');
+            acted = true;
+        }
+        
+        if (acted && action !== 'item') {
+            Combat.endPlayerTurn();
+        }
+    },
+    
+    executeAttack: function(attacker, defender, isMagic = false) {
+        const { hero } = window.gameState;
+        const isPlayer = attacker === hero;
+        const atkStat = isMagic ? (attacker.matk || 0) : (attacker.atk || 0);
+        const defStat = isMagic ? (defender.mdef || 0) : (defender.def || 0);
+        
+        // Fórmula de mitigação por curva
+        let damage = atkStat * (100 / (100 + defStat));
+        damage = Math.max(1, Math.floor(damage));
+        
+        // Crítico
+        const critChance = Math.min(50, 5 + ((attacker.luk || 0) * 0.5));
+        const isCrit = Math.random() * 100 < critChance;
+        if (isCrit) {
+            damage = Math.floor(damage * 1.5);
+            AudioSys.sfx.crit();
+            UI.addLog(`${isPlayer ? 'Crítico!' : 'Inimigo crítico!'}`, 'log-crit');
+        }
+        
+        // Esquiva (só se defender for jogador ou tiver agi maior)
+        if (!isPlayer) {
+            const agiDiff = (hero.stats.agi + hero.bonusStats.agi) - (attacker.agi || 0);
+            const dodgeChance = Math.min(40, Math.max(0, agiDiff * 2));
+            if (Math.random() * 100 < dodgeChance) {
+                UI.addLog(`${isPlayer ? 'Você' : 'Inimigo'} esquivou!`, 'log-info');
+                damage = 0;
+            }
+        }
+        
+        // Aplica dano
+        if (damage > 0) {
+            defender.hp -= damage;
+            if (defender.hp < 0) defender.hp = 0;
+            
+            // Floating text
+            UI.showFloatingText(`-${damage}`, isPlayer ? 'enemy' : 'player');
+            AudioSys.sfx.hit();
+            
+            UI.addLog(`${isPlayer ? 'Você causa' : `${defender.name} recebe`} ${damage} dano!`, isPlayer ? 'log-player' : 'log-enemy');
+        }
+        
+        // Verifica morte
+        if (defender.hp <= 0) {
+            if (isPlayer) {
+                UI.addLog('Você morreu...', 'log-enemy');
+                setTimeout(() => Game.gameOver('Morto em combate'), 1000);
+            } else {
+                UI.addLog(`${defender.name} derrotado! +${defender.xp} XP`, 'log-player');
+                AudioSys.sfx.levelup();
+                RewardSys.gainXp(defender.xp);
+                RewardSys.gainGold(Math.floor(window.gameState.dungeon.floor * 10 + Math.random() * 10));
+                Combat.endCombat(true);
+            }
+        }
+        
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    useSkill: function(skillName) {
+        const { hero, combat } = window.gameState;
+        const skillData = SKILL_DATA[skillName];
+        if (!skillData) return false;
+        
+        // Verifica cooldown
+        if (hero.cooldowns[skillName] > 0) {
+            UI.addLog(`${skillName} em cooldown!`, 'log-info');
+            return false;
+        }
+        
+        // Verifica MP
+        if (hero.stats.mp < skillData.cost) {
+            UI.addLog('MP insuficiente!', 'log-info');
+            return false;
+        }
+        
+        hero.stats.mp -= skillData.cost;
+        hero.cooldowns[skillName] = skillData.cooldown;
+        
+        UI.addLog(`Usou ${skillName}!`, 'log-player');
+        AudioSys.sfx.heal();
+        
+        // Aplica efeito
+        if (skillData.effect === 'damage') {
+            Combat.executeAttack(hero, combat.enemy, skillData.damageType === 'magic');
+        } else if (skillData.effect === 'heal') {
+            const healAmount = skillData.baseHeal + (hero.stats.matk || 0);
+            hero.stats.hp = Math.min(hero.stats.maxHp, hero.stats.hp + healAmount);
+            UI.showFloatingText(`+${healAmount}`, 'player');
+            UI.addLog(`Curou ${healAmount} HP!`, 'log-player');
+            AudioSys.sfx.heal();
+        } else if (skillData.effect === 'buff') {
+            hero.buffs.push({ name: skillName, turns: skillData.duration, stats: skillData.buffStats });
+            UI.addLog(`${skillName} ativado!`, 'log-info');
+        }
+        
+        UI.updateHeader();
+        return true;
+    },
+    
+    endPlayerTurn: function() {
+        const { combat, hero } = window.gameState;
+        
+        // Reduz cooldowns
+        for (const skill in hero.cooldowns) {
+            if (hero.cooldowns[skill] > 0) hero.cooldowns[skill]--;
+        }
+        
+        // Reduz duração de buffs
+        hero.buffs = hero.buffs.filter(buff => {
+            buff.turns--;
+            return buff.turns > 0;
+        });
+        
+        // Modificador Eco Arcano reduz cooldown adicional
+        if (window.gameState.dungeon.modifier === 'Eco Arcano') {
+            for (const skill in hero.cooldowns) {
+                if (hero.cooldowns[skill] > 0) hero.cooldowns[skill]--;
+            }
+        }
+        
+        combat.turn = 'enemy';
+        setTimeout(() => Combat.enemyTurn(), 600);
+    },
+    
+    enemyTurn: function() {
+        const { combat, hero } = window.gameState;
+        if (!combat.active) return;
+        
+        const enemy = combat.enemy;
+        
+        // Verifica se inimigo está morto (pode ter morrido por DoT etc)
+        if (enemy.hp <= 0) {
+            Combat.endCombat(true);
+            return;
+        }
+        
+        UI.addLog(`Turno de ${enemy.name}...`, 'log-enemy');
+        
+        // IA simples: ataca ou usa skill
+        let usedSkill = false;
+        if (enemy.skills && enemy.skills.length > 0 && Math.random() < 0.3) {
+            // Usaria skill se implementado
+            usedSkill = false;
+        }
+        
+        if (!usedSkill) {
+            Combat.executeAttack(enemy, hero);
+        }
+        
+        if (combat.active && hero.stats.hp > 0) {
+            combat.turn = 'player';
+            
+            // Auto-battle
+            if (combat.autoBattle) {
+                setTimeout(() => Combat.playerAction('attack'), 500);
+            }
+        }
+        
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    endCombat: function(victory) {
+        const { combat } = window.gameState;
+        combat.active = false;
+        combat.enemy = null;
+        
+        if (victory) {
+            UI.showNotification('Vitória!');
+        }
+        
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    flee: function() {
+        const { combat, hero } = window.gameState;
+        if (!combat.active) return;
+        
+        const enemy = combat.enemy;
+        // Chance de fuga baseada em AGI
+        const fleeChance = Math.min(80, 30 + ((hero.stats.agi + hero.bonusStats.agi) - (enemy.agi || 0)) * 3);
+        
+        if (Math.random() * 100 < fleeChance) {
+            UI.addLog('Fugiu com sucesso!', 'log-info');
+            Combat.endCombat(false);
+            // Retorna inimigo ao mapa (opcional, aqui removemos)
+        } else {
+            UI.addLog('Falhou ao fugir!', 'log-enemy');
+            combat.turn = 'enemy';
+            setTimeout(() => Combat.enemyTurn(), 500);
+        }
+        
+        UI.updateHeader();
+    }
+};
+
+/**
+ * SISTEMA DE RECOMPENSAS E PROGRESSÃO
+ */
+const RewardSys = {
+    gainXp: function(amount) {
+        const { hero } = window.gameState;
+        hero.xp += amount;
+        
+        const xpNeeded = hero.level * 100;
+        if (hero.xp >= xpNeeded) {
+            hero.xp -= xpNeeded;
+            hero.level++;
+            UI.showNotification(`Nível ${hero.level}!`);
+            AudioSys.sfx.levelup();
+            setTimeout(() => UI.openLevelUpModal(), 500);
+        }
+        
+        UI.updateHeader();
+    },
+    
+    gainGold: function(amount) {
+        const { hero, dungeon } = window.gameState;
+        
+        // Modificador Abundância
+        if (dungeon.modifier === 'Abundância') {
+            amount *= 2;
+            UI.showNotification('Ouro duplicado!');
+        }
+        
+        hero.gold += Math.floor(amount);
+        hero.totalGoldEarned += Math.floor(amount);
+        UI.updateHeader();
+    }
+};
+
+/**
+ * CONTROLES E INPUT
+ */
+const InputHandler = {
+    init: function() {
+        // Teclado
+        document.addEventListener('keydown', (e) => {
+            if (window.gameState.combat.active) return;
+            
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W':
+                    Game.movePlayer(0, -1);
+                    break;
+                case 'ArrowDown': case 's': case 'S':
+                    Game.movePlayer(0, 1);
+                    break;
+                case 'ArrowLeft': case 'a': case 'A':
+                    Game.movePlayer(-1, 0);
+                    break;
+                case 'ArrowRight': case 'd': case 'D':
+                    Game.movePlayer(1, 0);
+                    break;
+                case ' ': case 'Enter':
+                    Game.waitTurn();
+                    break;
+            }
+        });
+        
+        // D-Pad touch/click
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (window.gameState.combat.active) return;
+                
+                const dir = btn.dataset.dir;
+                if (dir === 'up') Game.movePlayer(0, -1);
+                if (dir === 'down') Game.movePlayer(0, 1);
+                if (dir === 'left') Game.movePlayer(-1, 0);
+                if (dir === 'right') Game.movePlayer(1, 0);
+            });
+        });
+        
+        // Botões de ação
+        document.getElementById('btn-wait').addEventListener('click', () => Game.waitTurn());
+        document.getElementById('btn-flee').addEventListener('click', () => Combat.flee());
+        document.getElementById('btn-inventory').addEventListener('click', () => UI.openInventory());
+        document.getElementById('btn-skills').addEventListener('click', () => UI.openSkills());
+    }
+};
+
+/**
+ * LÓGICA PRINCIPAL DO JOGO (MOVIMENTO, INTERAÇÕES)
+ */
+const Game = {
+    movePlayer: function(dx, dy) {
+        const { dungeon, hero } = window.gameState;
+        if (dungeon.combat && dungeon.combat.active) return;
+        
+        const newX = dungeon.playerPos.x + dx;
+        const newY = dungeon.playerPos.y + dy;
+        
+        // Verifica limites
+        if (newX < 0 || newX >= 25 || newY < 0 || newY >= 25) return;
+        
+        // Verifica parede
+        if (dungeon.map[newY][newX] === 0) return;
+        
+        // Verifica entidade
+        const key = `${newX},${newY}`;
+        if (dungeon.entities && dungeon.entities[key]) {
+            const entity = dungeon.entities[key];
+            
+            if (entity.type === 'enemy') {
+                // Inicia combate (player vai até o inimigo = turno do player)
+                Combat.startCombat(entity.data, false);
+                return;
+            } else if (entity.type === 'chest') {
+                UI.addLog(`Encontrou ${entity.data.name}!`, 'log-info');
+                Inventory.addItem(entity.data);
+                delete dungeon.entities[key];
+                AudioSys.sfx.levelup();
+            } else if (entity.type === 'trap') {
+                const damage = Math.floor(window.gameState.dungeon.floor * 3);
+                hero.stats.hp -= damage;
+                UI.addLog(`Armadilha! -${damage} HP`, 'log-enemy');
+                UI.showFloatingText(`-${damage}`, 'player');
+                AudioSys.sfx.error();
+                delete dungeon.entities[key];
+                if (hero.stats.hp <= 0) {
+                    setTimeout(() => Game.gameOver('Morto por armadilha'), 500);
+                    return;
+                }
+            } else if (entity.type === 'secret') {
+                UI.addLog(`Sala secreta! +${entity.data.gold} ouro`, 'log-info');
+                RewardSys.gainGold(entity.data.gold);
+                AudioSys.sfx.levelup();
+                delete dungeon.entities[key];
+            }
+        }
+        
+        // Move
+        dungeon.playerPos = { x: newX, y: newY };
+        AudioSys.sfx.step();
+        
+        // Atualiza visão
+        MapRenderer.updateVisibility();
+        
+        // Inimigos se movem
+        EnemyAI.update();
+        
+        // Verifica escada
+        if (newX === dungeon.stairsPos.x && newY === dungeon.stairsPos.y) {
+            setTimeout(() => Game.nextFloor(), 300);
+        }
+        
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    waitTurn: function() {
+        if (window.gameState.combat.active) {
+            Combat.playerAction('wait');
+        } else {
+            UI.addLog('Você espera...', 'log-info');
+            EnemyAI.update();
+            UI.renderCanvas();
+        }
+    },
+    
+    nextFloor: function() {
+        const { dungeon, hero } = window.gameState;
+        
+        // Cura parcial ao descer (mitigada por Peste)
+        const healAmount = Math.floor(hero.stats.maxHp * 0.2);
+        const actualHeal = dungeon.modifier === 'Peste' ? Math.floor(healAmount * 0.5) : healAmount;
+        hero.stats.hp = Math.min(hero.stats.maxHp, hero.stats.hp + actualHeal);
+        
+        dungeon.floor++;
+        UI.showNotification(`Andar ${dungeon.floor}`);
+        AudioSys.sfx.levelup();
+        
+        // Gera novo modifier (20% chance)
+        if (Math.random() < 0.20) {
+            const modifiers = ['Escuridão', 'Eco Arcano', 'Peste', 'Abundância'];
+            dungeon.modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+            UI.showNotification(`Modifier: ${dungeon.modifier}!`);
+        } else {
+            dungeon.modifier = null;
+        }
+        
+        // Gera nova dungeon
+        const newDungeon = DungeonGen.generate(dungeon.floor);
+        dungeon.map = newDungeon.map;
+        dungeon.playerPos = newDungeon.playerPos;
+        dungeon.stairsPos = newDungeon.stairsPos;
+        dungeon.entities = newDungeon.entities;
+        
+        MapRenderer.updateVisibility();
+        UI.updateHeader();
+        UI.renderCanvas();
+    },
+    
+    gameOver: function(reason) {
+        AudioSys.sfx.death();
+        document.getElementById('go-reason').textContent = reason;
+        document.getElementById('go-total-gold').textContent = window.gameState.hero.totalGoldEarned;
+        document.getElementById('go-floor').textContent = window.gameState.dungeon.floor;
+        UI.openModal('modal-gameover');
+    },
+    
+    restart: function() {
+        location.reload();
+    }
+};
+
+// --- FIM DA PARTE 2: MOTORES E COMBATE ---
+
+/* ==========================================================================
+   PARTE 3: RENDERIZAÇÃO, UI, PERSISTÊNCIA E INICIALIZAÇÃO
+   ========================================================================== */
+
+const TILE_SIZE = 24;
+const MAP_WIDTH = 25;
+const MAP_HEIGHT = 25;
+
+// --- SISTEMA DE RENDERIZAÇÃO ---
+const Renderer = {
+    canvas: null,
+    ctx: null,
+    
+    init: function() {
+        this.canvas = document.getElementById('game-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    },
+    
+    resize: function() {
+        const container = document.getElementById('map-container');
+        const size = Math.min(container.clientWidth, container.clientHeight);
+        const scale = window.devicePixelRatio || 1;
+        
+        this.canvas.style.width = size + 'px';
+        this.canvas.style.height = size + 'px';
+        this.canvas.width = size * scale;
+        this.canvas.height = size * scale;
+        this.ctx.scale(scale, scale);
+        
+        this.tileSize = size / MAP_WIDTH;
+    },
+    
+    clear: function() {
+        this.ctx.fillStyle = '#0a0a0a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    
+    drawMap: function() {
+        const { map, playerPos, visibleTiles, floor } = window.gameState.dungeon;
+        const modifier = window.gameState.dungeon.modifier;
+        const isDarkness = modifier === 'Escuridão';
+        const visionRadius = isDarkness ? 2 : 4;
+        
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                const tile = map[y][x];
+                const isVisible = visibleTiles[`${x},${y}`];
+                const dist = Math.sqrt((x - playerPos.x) ** 2 + (y - playerPos.y) ** 2);
+                const isInVision = dist <= visionRadius;
+                
+                let color = '#0a0a0a';
+                
+                if (isVisible) {
+                    switch (tile.type) {
+                        case 'wall': color = '#444'; break;
+                        case 'floor': color = '#222'; break;
+                        case 'stairs': color = '#ff9800'; break;
+                        case 'chest': color = '#ffd700'; break;
+                        case 'trap': color = '#f44336'; break;
+                        case 'secret': color = isInVision ? '#9c27b0' : '#222'; break;
+                    }
+                    
+                    // Desenhar tile
+                    this.ctx.fillStyle = color;
+                    this.ctx.fillRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                    
+                    // Borda sutil
+                    this.ctx.strokeStyle = '#333';
+                    this.ctx.strokeRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                    
+                    // Ícones sobrepostos
+                    if (tile.type === 'stairs') {
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.font = `${this.tileSize * 0.7}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('▼', (x + 0.5) * this.tileSize, (y + 0.5) * this.tileSize);
+                    } else if (tile.type === 'chest') {
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.font = `${this.tileSize * 0.7}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('📦', (x + 0.5) * this.tileSize, (y + 0.5) * this.tileSize);
+                    } else if (tile.type === 'trap' && isInVision) {
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.font = `${this.tileSize * 0.5}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('⚠️', (x + 0.5) * this.tileSize, (y + 0.5) * this.tileSize);
+                    }
+                    
+                    // Inimigos no mapa
+                    if (tile.enemy) {
+                        const enemyColor = tile.enemy.isBoss ? '#e91e63' : (tile.enemy.isChampion ? '#ff5722' : '#8bc34a');
+                        this.ctx.fillStyle = enemyColor;
+                        this.ctx.beginPath();
+                        this.ctx.arc(
+                            (x + 0.5) * this.tileSize,
+                            (y + 0.5) * this.tileSize,
+                            this.tileSize * 0.35,
+                            0, Math.PI * 2
+                        );
+                        this.ctx.fill();
+                        
+                        // Barra de HP do inimigo
+                        const hpPercent = tile.enemy.hp / tile.enemy.maxHp;
+                        this.ctx.fillStyle = '#333';
+                        this.ctx.fillRect(x * this.tileSize + 2, y * this.tileSize, this.tileSize - 4, 3);
+                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4caf50' : (hpPercent > 0.25 ? '#ff9800' : '#f44336');
+                        this.ctx.fillRect(x * this.tileSize + 2, y * this.tileSize, (this.tileSize - 4) * hpPercent, 3);
+                    }
+                }
+                
+                // Névoa de guerra para Escuridão
+                if (isDarkness && !isInVision && isVisible) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    this.ctx.fillRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                }
+                
+                // Tile não visitado
+                if (!isVisible) {
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                }
+            }
+        }
+        
+        // Jogador
+        this.ctx.fillStyle = '#2196f3';
+        this.ctx.beginPath();
+        this.ctx.arc(
+            (playerPos.x + 0.5) * this.tileSize,
+            (playerPos.y + 0.5) * this.tileSize,
+            this.tileSize * 0.4,
+            0, Math.PI * 2
+        );
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+    },
+    
+    drawCombatOverlay: function() {
+        if (!window.gameState.combat.active) return;
+        
+        const { enemy } = window.gameState.combat;
+        const overlay = document.getElementById('combat-overlay');
+        overlay.style.display = 'flex';
+        
+        document.getElementById('combat-enemy-name').textContent = enemy.name;
+        document.getElementById('combat-enemy-hp').textContent = `${enemy.hp}/${enemy.maxHp}`;
+        document.getElementById('combat-enemy-hp-bar').style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
+        
+        const turnIndicator = window.gameState.combat.turn === 'player' ? 'Sua vez!' : 'Turno do inimigo...';
+        document.getElementById('combat-turn').textContent = turnIndicator;
+    },
+    
+    hideCombatOverlay: function() {
+        document.getElementById('combat-overlay').style.display = 'none';
+    }
+};
+
+// --- ATUALIZAÇÃO DO HUD ---
+const HUD = {
+    update: function() {
+        const hero = window.gameState.hero;
+        const stats = hero.stats;
+        const bonusStats = hero.bonusStats;
+        
+        // Stats totais
+        const totalHp = stats.maxHp + bonusStats.hp;
+        const totalAtk = stats.atk + bonusStats.atk;
+        const totalDef = stats.def + bonusStats.def;
+        const totalMatk = stats.matk + bonusStats.matk;
+        const totalMdef = stats.mdef + bonusStats.mdef;
+        const totalAgi = stats.agi + bonusStats.agi;
+        const totalLuk = stats.luk + bonusStats.luk;
+        
+        document.getElementById('hud-level').textContent = `Nv.${hero.level}`;
+        document.getElementById('hud-class').textContent = hero.evolutionName || hero.className;
+        document.getElementById('hud-hp').textContent = `${stats.hp}/${totalHp}`;
+        document.getElementById('hud-hp-bar').style.width = `${(stats.hp / totalHp) * 100}%`;
+        document.getElementById('hud-mp').textContent = `${stats.mp}/${stats.maxMp}`;
+        document.getElementById('hud-gold').textContent = hero.gold;
+        document.getElementById('hud-floor').textContent = `Andar ${window.gameState.dungeon.floor}`;
+        
+        if (window.gameState.dungeon.modifier) {
+            document.getElementById('hud-modifier').textContent = window.gameState.dungeon.modifier;
+            document.getElementById('hud-modifier').style.display = 'inline';
+        } else {
+            document.getElementById('hud-modifier').style.display = 'none';
+        }
+        
+        // Atualizar log de combate
+        const combatLog = document.getElementById('combat-log');
+        const logEntries = window.gameState.combat.log.slice(-5);
+        combatLog.innerHTML = logEntries.map(entry => `<div>${entry}</div>`).join('');
+    }
+};
+
+// --- FUNÇÃO CENTRAL DE RENDERIZAÇÃO ---
+function renderAll() {
+    Renderer.clear();
+    Renderer.drawMap();
+    
+    if (window.gameState.combat.active) {
+        Renderer.drawCombatOverlay();
+    } else {
+        Renderer.hideCombatOverlay();
+    }
+    
+    HUD.update();
+}
+
+// --- GERENCIAMENTO DE MODAIS UI ---
+const UI = {
+    openModal: function(modalId) {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        document.getElementById(modalId).style.display = 'flex';
+        
+        if (modalId === 'modal-inventory') this.renderInventory();
+        if (modalId === 'modal-skills') this.renderSkills();
+        if (modalId === 'modal-hero') this.renderHeroSheet();
+        if (modalId === 'modal-shop') this.renderShop();
+        if (modalId === 'modal-blacksmith') this.renderBlacksmith();
+        if (modalId === 'modal-shrine') this.renderShrine();
+        if (modalId === 'modal-bestiary') this.renderBestiary();
+        if (modalId === 'modal-achievements') this.renderAchievements();
+    },
+    
+    closeModal: function() {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    },
+    
+    renderInventory: function() {
+        const inventory = window.gameState.hero.inventory;
+        const container = document.getElementById('inventory-list');
+        container.innerHTML = '';
+        
+        // Slots de inventário (6 slots)
+        for (let i = 0; i < 6; i++) {
+            const item = inventory[i];
+            const slotDiv = document.createElement('div');
+            slotDiv.className = 'inventory-slot';
+            
+            if (item) {
+                slotDiv.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-type">${item.type}</div>
+                    <div class="item-actions">
+                        ${item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' 
+                            ? `<button onclick="UI.equipItem(${i})">Equipar</button>` 
+                            : ''}
+                        <button onclick="UI.dropItem(${i})">Descartar</button>
+                        <button onclick="UI.destroyItem(${i})">Destruir (+${window.gameState.dungeon.floor * 3}g)</button>
+                    </div>
+                `;
+            } else {
+                slotDiv.innerHTML = '<div class="empty-slot">Vazio</div>';
+            }
+            
+            container.appendChild(slotDiv);
+        }
+        
+        // Slot consumível
+        const consumable = window.gameState.hero.consumable;
+        const consumableDiv = document.getElementById('consumable-slot');
+        if (consumable) {
+            consumableDiv.innerHTML = `
+                <div class="item-icon">${consumable.icon}</div>
+                <div class="item-name">${consumable.name}</div>
+                <button onclick="UI.useConsumable()">Usar</button>
+                <button onclick="UI.dropConsumable()">Descartar</button>
+            `;
+        } else {
+            consumableDiv.innerHTML = '<div class="empty-slot">Nenhum consumível</div>';
+        }
+        
+        // Equipamentos
+        const equipment = window.gameState.hero.equipment;
+        document.getElementById('equip-weapon').textContent = equipment.weapon ? equipment.weapon.name : 'Nenhum';
+        document.getElementById('equip-armor').textContent = equipment.armor ? equipment.armor.name : 'Nenhum';
+        document.getElementById('equip-accessory').textContent = equipment.accessory ? equipment.accessory.name : 'Nenhum';
+    },
+    
+    equipItem: function(index) {
+        const item = window.gameState.hero.inventory[index];
+        if (!item) return;
+        
+        const equipment = window.gameState.hero.equipment;
+        const slot = item.type;
+        
+        if (equipment[slot]) {
+            // Devolver equipamento atual ao inventário se houver espaço
+            if (window.gameState.hero.inventory.length < 6) {
+                window.gameState.hero.inventory.push(equipment[slot]);
+            } else {
+                alert('Inventário cheio! Destrua um item primeiro.');
+                return;
+            }
+        }
+        
+        equipment[slot] = item;
+        window.gameState.hero.inventory.splice(index, 1);
+        
+        Hero.recalcStats(window.gameState.hero);
+        this.renderInventory();
+        renderAll();
+    },
+    
+    dropItem: function(index) {
+        if (confirm('Tem certeza que deseja descartar este item?')) {
+            window.gameState.hero.inventory.splice(index, 1);
+            this.renderInventory();
+        }
+    },
+    
+    destroyItem: function(index) {
+        const item = window.gameState.hero.inventory[index];
+        const goldGain = window.gameState.dungeon.floor * 3;
+        
+        if (confirm(`Destruir "${item.name}" e ganhar ${goldGain} de ouro?`)) {
+            window.gameState.hero.inventory.splice(index, 1);
+            window.gameState.hero.gold += goldGain;
+            window.gameState.hero.totalGoldEarned += goldGain;
+            
+            Hero.recalcStats(window.gameState.hero);
+            this.renderInventory();
+            renderAll();
+        }
+    },
+    
+    useConsumable: function() {
+        const consumable = window.gameState.hero.consumable;
+        if (!consumable) return;
+        
+        const hero = window.gameState.hero;
+        const floor = window.gameState.dungeon.floor;
+        const isPeste = window.gameState.dungeon.modifier === 'Peste';
+        let used = false;
+        
+        if (consumable.id === 'potion_heal') {
+            const healAmount = Math.floor(hero.stats.maxHp * 0.5);
+            const actualHeal = isPeste ? Math.floor(healAmount * 0.5) : healAmount;
+            hero.stats.hp = Math.min(hero.stats.maxHp + hero.bonusStats.hp, hero.stats.hp + actualHeal);
+            AudioSys.sfx.heal();
+            used = true;
+        } else if (consumable.id === 'bomb') {
+            if (window.gameState.combat.active) {
+                const damage = floor * 5;
+                window.gameState.combat.enemy.hp -= damage;
+                Combat.log(`Bomba causou ${damage} de dano!`);
+                AudioSys.sfx.explosion();
+                used = true;
+            } else {
+                alert('Só pode usar bomba em combate!');
+            }
+        } else if (consumable.id === 'scroll_teleport') {
+            MapGen.findStairsAndMove();
+            AudioSys.sfx.teleport();
+            used = true;
+        }
+        
+        if (used) {
+            window.gameState.hero.consumable = null;
+            this.renderInventory();
+            renderAll();
+        }
+    },
+    
+    dropConsumable: function() {
+        if (confirm('Descartar consumível?')) {
+            window.gameState.hero.consumable = null;
+            this.renderInventory();
+        }
+    },
+    
+    renderSkills: function() {
+        const skills = window.gameState.hero.skills;
+        const cooldowns = window.gameState.hero.cooldowns;
+        const container = document.getElementById('skills-list');
+        container.innerHTML = '';
+        
+        skills.forEach((skill, index) => {
+            const cd = cooldowns[skill.id] || 0;
+            const skillDiv = document.createElement('div');
+            skillDiv.className = 'skill-entry';
+            skillDiv.innerHTML = `
+                <div class="skill-name">${skill.name}</div>
+                <div class="skill-desc">${skill.description}</div>
+                <div class="skill-cost">MP: ${skill.mpCost} | CD: ${skill.cooldown}</div>
+                <button onclick="Combat.useSkill(${index})" ${cd > 0 ? 'disabled' : ''}>
+                    ${cd > 0 ? `Recarregando (${cd})` : 'Usar'}
+                </button>
+            `;
+            container.appendChild(skillDiv);
+        });
+        
+        if (skills.length === 0) {
+            container.innerHTML = '<div>Nenhuma habilidade aprendida.</div>';
+        }
+    },
+    
+    renderHeroSheet: function() {
+        const hero = window.gameState.hero;
+        const stats = hero.stats;
+        const bonusStats = hero.bonusStats;
+        
+        const totalHp = stats.maxHp + bonusStats.hp;
+        const totalAtk = stats.atk + bonusStats.atk;
+        const totalDef = stats.def + bonusStats.def;
+        const totalMatk = stats.matk + bonusStats.matk;
+        const totalMdef = stats.mdef + bonusStats.mdef;
+        const totalAgi = stats.agi + bonusStats.agi;
+        const totalLuk = stats.luk + bonusStats.luk;
+        
+        const critChance = Math.min(50, 5 + (totalLuk * 0.5)).toFixed(1);
+        
+        document.getElementById('sheet-name').textContent = hero.evolutionName || hero.className;
+        document.getElementById('sheet-level').textContent = `Nível ${hero.level}`;
+        document.getElementById('sheet-xp').textContent = `${hero.xp} / ${Math.floor(hero.level * 100 * 1.5)}`;
+        document.getElementById('sheet-gold').textContent = hero.gold;
+        document.getElementById('sheet-total-gold').textContent = hero.totalGoldEarned;
+        
+        document.getElementById('sheet-hp').textContent = `${stats.hp}/${totalHp}`;
+        document.getElementById('sheet-atk').textContent = totalAtk;
+        document.getElementById('sheet-def').textContent = totalDef;
+        document.getElementById('sheet-matk').textContent = totalMatk;
+        document.getElementById('sheet-mdef').textContent = totalMdef;
+        document.getElementById('sheet-agi').textContent = totalAgi;
+        document.getElementById('sheet-luk').textContent = totalLuk;
+        document.getElementById('sheet-crit').textContent = `${critChance}%`;
+    },
+    
+    renderShop: function() {
+        const floor = window.gameState.dungeon.floor;
+        const shopItems = [
+            { id: 'potion_heal', name: 'Poção de Cura', icon: '🧪', price: floor * 5 },
+            { id: 'bomb', name: 'Bomba', icon: '💣', price: floor * 8 },
+            { id: 'scroll_teleport', name: 'Pergaminho de Teleporte', icon: '📜', price: floor * 10 }
+        ];
+        
+        const container = document.getElementById('shop-items');
+        container.innerHTML = '';
+        
+        shopItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `
+                <span>${item.icon} ${item.name}</span>
+                <span>${item.price}g</span>
+                <button onclick="UI.buyItem('${item.id}', ${item.price})">Comprar</button>
+            `;
+            container.appendChild(div);
+        });
+    },
+    
+    buyItem: function(itemId, price) {
+        const hero = window.gameState.hero;
+        
+        if (hero.gold < price) {
+            alert('Ouro insuficiente!');
+            return;
+        }
+        
+        const itemData = ITEM_POOLS.consumables.find(i => i.id === itemId);
+        if (!itemData) return;
+        
+        // Consumíveis vão para o slot único
+        if (['potion_heal', 'bomb', 'scroll_teleport'].includes(itemId)) {
+            if (hero.consumable) {
+                if (!confirm('Já tem um consumível. Substituir?')) return;
+            }
+            hero.consumable = { ...itemData };
+        } else {
+            // Itens normais no inventário
+            if (hero.inventory.length >= 6) {
+                alert('Inventário cheio!');
+                return;
+            }
+            hero.inventory.push({ ...itemData });
+        }
+        
+        hero.gold -= price;
+        AudioSys.sfx.coin();
+        this.renderShop();
+        renderAll();
+    },
+    
+    renderBlacksmith: function() {
+        const floor = window.gameState.dungeon.floor;
+        const upgradeCost = floor * 15;
+        
+        document.getElementById('blacksmith-cost').textContent = upgradeCost;
+    },
+    
+    upgradeEquipment: function() {
+        const floor = window.gameState.dungeon.floor;
+        const upgradeCost = floor * 15;
+        const hero = window.gameState.hero;
+        
+        if (hero.gold < upgradeCost) {
+            alert('Ouro insuficiente!');
+            return;
+        }
+        
+        const equipment = hero.equipment;
+        let upgraded = false;
+        
+        for (const slot in equipment) {
+            if (equipment[slot]) {
+                equipment[slot].bonus = (equipment[slot].bonus || 0) + 1;
+                upgraded = true;
+                break; // Upgrade apenas um por vez
+            }
+        }
+        
+        if (!upgraded) {
+            alert('Nenhum equipamento para melhorar!');
+            return;
+        }
+        
+        hero.gold -= upgradeCost;
+        Hero.recalcStats(hero);
+        AudioSys.sfx.upgrade();
+        alert('Equipamento melhorado!');
+        this.renderBlacksmith();
+        renderAll();
+    },
+    
+    renderShrine: function() {
+        const healCost = 10;
+        document.getElementById('shrine-cost').textContent = healCost;
+    },
+    
+    shrineHeal: function() {
+        const cost = 10;
+        const hero = window.gameState.hero;
+        
+        if (hero.gold < cost) {
+            alert('Ouro insuficiente!');
+            return;
+        }
+        
+        const isPeste = window.gameState.dungeon.modifier === 'Peste';
+        const healAmount = isPeste 
+            ? Math.floor((hero.stats.maxHp + hero.bonusStats.hp) * 0.5) 
+            : hero.stats.maxHp + hero.bonusStats.hp;
+        
+        hero.stats.hp = hero.stats.maxHp + hero.bonusStats.hp;
+        hero.stats.mp = hero.stats.maxMp;
+        hero.gold -= cost;
+        
+        AudioSys.sfx.heal();
+        alert(`HP e MP restaurados! ${isPeste ? '(Peste: cura reduzida)' : ''}`);
+        this.renderShrine();
+        renderAll();
+    },
+    
+    renderBestiary: function() {
+        const bestiary = window.gameState.meta.bestiary;
+        const container = document.getElementById('bestiary-list');
+        container.innerHTML = '';
+        
+        const entries = Object.entries(bestiary);
+        
+        if (entries.length === 0) {
+            container.innerHTML = '<div>Nenhum inimigo registrado.</div>';
+            return;
+        }
+        
+        entries.forEach(([name, data]) => {
+            const div = document.createElement('div');
+            div.className = 'bestiary-entry';
+            div.innerHTML = `
+                <strong>${name}</strong><br>
+                Mortes: ${data.kills}<br>
+                Dano máximo recebido: ${data.maxDamageTaken || 0}
+            `;
+            container.appendChild(div);
+        });
+    },
+    
+    renderAchievements: function() {
+        const achievements = window.gameState.meta.achievements;
+        const container = document.getElementById('achievements-list');
+        container.innerHTML = '';
+        
+        const allAchievements = [
+            { id: 'first_blood', name: 'Primeiro Sangue', desc: 'Derrote seu primeiro inimigo' },
+            { id: 'gold_hoarder', name: 'Acumulador', desc: 'Acumule 1000 de ouro total' },
+            { id: 'deep_diver', name: 'Explorador Profundo', desc: 'Alcance o andar 10' },
+            { id: 'boss_slayer', name: 'Caçador de Chefes', desc: 'Derrote 5 chefes' }
+        ];
+        
+        allAchievements.forEach(ach => {
+            const unlocked = achievements[ach.id];
+            const div = document.createElement('div');
+            div.className = `achievement-entry ${unlocked ? 'unlocked' : 'locked'}`;
+            div.innerHTML = `
+                <strong>${ach.name}</strong><br>
+                ${ach.desc}<br>
+                ${unlocked ? '✅ Desbloqueado' : '🔒 Bloqueado'}
+            `;
+            container.appendChild(div);
+        });
+    }
+};
+
+// --- SISTEMA DE LEVEL UP E EVOLUÇÃO ---
+const LevelUpSystem = {
+    checkLevelUp: function() {
+        const hero = window.gameState.hero;
+        const xpNeeded = Math.floor(hero.level * 100 * 1.5);
+        
+        if (hero.xp >= xpNeeded) {
+            hero.level++;
+            hero.xp -= xpNeeded;
+            
+            // Aumento de stats base
+            hero.stats.maxHp += 10;
+            hero.stats.maxMp += 5;
+            hero.stats.atk += 2;
+            hero.stats.def += 1;
+            hero.stats.matk += 1;
+            hero.stats.mdef += 1;
+            hero.stats.agi += 1;
+            hero.stats.luk += 1;
+            
+            hero.stats.hp = hero.stats.maxHp + hero.bonusStats.hp;
+            hero.stats.mp = hero.stats.maxMp;
+            
+            AudioSys.sfx.levelup();
+            
+            // Escolha de skill
+            this.offerSkillChoice();
+            
+            // Evolução no nível 5
+            if (hero.level === 5 && !hero.evolutionName) {
+                setTimeout(() => this.offerEvolution(), 500);
+            }
+            
+            renderAll();
+        }
+    },
+    
+    offerSkillChoice: function() {
+        const hero = window.gameState.hero;
+        const classData = CLASS_DATA[hero.className];
+        const availableSkills = classData.skills.filter(s => s.minLevel <= hero.level);
+        const learnedIds = hero.skills.map(s => s.id);
+        const newSkills = availableSkills.filter(s => !learnedIds.includes(s.id));
+        
+        if (newSkills.length === 0) {
+            alert(`Nível ${hero.level} alcançado! Stats aumentados.`);
+            return;
+        }
+        
+        // Selecionar 3 habilidades aleatórias
+        const choices = [];
+        const pool = [...newSkills];
+        
+        for (let i = 0; i < Math.min(3, pool.length); i++) {
+            const idx = Math.floor(Math.random() * pool.length);
+            choices.push(pool[idx]);
+            pool.splice(idx, 1);
+        }
+        
+        // Mostrar modal de escolha
+        const container = document.getElementById('levelup-skills');
+        container.innerHTML = '';
+        
+        choices.forEach(skill => {
+            const btn = document.createElement('button');
+            btn.className = 'levelup-skill-btn';
+            btn.innerHTML = `
+                <strong>${skill.name}</strong><br>
+                ${skill.description}<br>
+                Custo: ${skill.mpCost} MP | CD: ${skill.cooldown}
+            `;
+            btn.onclick = () => {
+                hero.skills.push({ ...skill });
+                hero.cooldowns[skill.id] = 0;
+                UI.closeModal();
+                alert(`Habilidade "${skill.name}" aprendida!`);
+                renderAll();
+            };
+            container.appendChild(btn);
+        });
+        
+        UI.openModal('modal-levelup');
+    },
+    
+    offerEvolution: function() {
+        const hero = window.gameState.hero;
+        const classData = CLASS_DATA[hero.className];
+        const evolutions = classData.evolutions;
+        
+        const container = document.getElementById('evolution-choices');
+        container.innerHTML = '';
+        
+        evolutions.forEach(evoName => {
+            const btn = document.createElement('button');
+            btn.className = 'evolution-btn';
+            btn.textContent = evoName;
+            btn.onclick = () => {
+                hero.evolutionName = evoName;
+                
+                // Bônus de evolução
+                const evoBonus = {
+                    'Bárbaro': { hp: 30, atk: 5 },
+                    'Lorde': { hp: 20, def: 5, matk: 3 },
+                    'Assassino': { agi: 8, luk: 5, atk: 3 },
+                    'Atirador': { agi: 5, luk: 8, matk: 3 },
+                    'Arquimago': { mp: 20, matk: 8, mdef: 3 },
+                    'Necromante': { hp: 15, matk: 6, mdef: 4 }
+                };
+                
+                const bonus = evoBonus[evoName] || {};
+                for (const stat in bonus) {
+                    hero.bonusStats[stat] = (hero.bonusStats[stat] || 0) + bonus[stat];
+                }
+                
+                UI.closeModal();
+                alert(`Evoluiu para ${evoName}!`);
+                Hero.recalcStats(hero);
+                renderAll();
+            };
+            container.appendChild(btn);
+        });
+        
+        UI.openModal('modal-evolution');
+    }
+};
+
+// --- SISTEMA DE SALVAMENTO (localStorage) ---
+const SaveSystem = {
+    save: function() {
+        const saveData = {
+            hero: window.gameState.hero,
+            dungeon: {
+                floor: window.gameState.dungeon.floor,
+                modifier: window.gameState.dungeon.modifier
+            },
+            meta: window.gameState.meta
+        };
+        
+        localStorage.setItem('depths_solcesto_save', JSON.stringify(saveData));
+        console.log('Jogo salvo!');
+    },
+    
+    load: function() {
+        const saved = localStorage.getItem('depths_solcesto_save');
+        if (!saved) return false;
+        
+        try {
+            const data = JSON.parse(saved);
+            
+            // Restaurar estado
+            window.gameState.hero = data.hero;
+            window.gameState.dungeon.floor = data.dungeon.floor;
+            window.gameState.dungeon.modifier = data.dungeon.modifier;
+            window.gameState.meta = data.meta;
+            
+            // Regenerar mapa para o andar atual
+            MapGen.generateFloor(window.gameState.dungeon.floor);
+            
+            Hero.recalcStats(window.gameState.hero);
+            renderAll();
+            
+            console.log('Jogo carregado!');
+            return true;
+        } catch (e) {
+            console.error('Erro ao carregar save:', e);
+            localStorage.removeItem('depths_solcesto_save');
+            return false;
+        }
+    },
+    
+    hasSave: function() {
+        return localStorage.getItem('depths_solcesto_save') !== null;
+    },
+    
+    deleteSave: function() {
+        localStorage.removeItem('depths_solcesto_save');
+        console.log('Save deletado.');
+    }
+};
+
+// --- CONQUISTAS ---
+const AchievementSystem = {
+    unlock: function(id) {
+        if (window.gameState.meta.achievements[id]) return;
+        
+        window.gameState.meta.achievements[id] = Date.now();
+        AudioSys.sfx.achievement();
+        
+        const achievementNames = {
+            'first_blood': 'Primeiro Sangue',
+            'gold_hoarder': 'Acumulador',
+            'deep_diver': 'Explorador Profundo',
+            'boss_slayer': 'Caçador de Chefes'
+        };
+        
+        alert(`🏆 Conquista desbloqueada: ${achievementNames[id]}`);
+    },
+    
+    check: function() {
+        const meta = window.gameState.meta;
+        const hero = window.gameState.hero;
+        const floor = window.gameState.dungeon.floor;
+        
+        // Gold hoarder
+        if (hero.totalGoldEarned >= 1000) {
+            this.unlock('gold_hoarder');
+        }
+        
+        // Deep diver
+        if (floor >= 10) {
+            this.unlock('deep_diver');
+        }
+    }
+};
+
+// --- EVENTOS E CONTROLES ---
+function setupEvents() {
+    // D-Pad virtual
+    const dpadButtons = document.querySelectorAll('.dpad-btn');
+    dpadButtons.forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleInput(btn.dataset.dir);
+        });
+        btn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handleInput(btn.dataset.dir);
+        });
+    });
+    
+    // Teclado
+    document.addEventListener('keydown', (e) => {
+        const keyMap = {
+            'ArrowUp': 'up',
+            'ArrowDown': 'down',
+            'ArrowLeft': 'left',
+            'ArrowRight': 'right',
+            'w': 'up',
+            's': 'down',
+            'a': 'left',
+            'd': 'right',
+            'W': 'up',
+            'S': 'down',
+            'A': 'left',
+            'D': 'right'
+        };
+        
+        if (keyMap[e.key]) {
+            e.preventDefault();
+            handleInput(keyMap[e.key]);
+        }
+        
+        // Atalhos
+        if (e.key === 'i' || e.key === 'I') UI.openModal('modal-inventory');
+        if (e.key === 'k' || e.key === 'K') UI.openModal('modal-skills');
+        if (e.key === 'c' || e.key === 'C') UI.openModal('modal-hero');
+        if (e.key === 'Escape') UI.closeModal();
+    });
+    
+    // Botões do header
+    document.getElementById('btn-inventory').onclick = () => UI.openModal('modal-inventory');
+    document.getElementById('btn-skills').onclick = () => UI.openModal('modal-skills');
+    document.getElementById('btn-hero').onclick = () => UI.openModal('modal-hero');
+    document.getElementById('btn-save').onclick = () => {
+        SaveSystem.save();
+        alert('Jogo salvo!');
+    };
+    
+    // Botões dos modais
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.onclick = () => UI.closeModal();
+    });
+    
+    document.getElementById('btn-shop').onclick = () => {
+        UI.openModal('modal-shop');
+    };
+    
+    document.getElementById('btn-blacksmith').onclick = () => {
+        UI.openModal('modal-blacksmith');
+    };
+    
+    document.getElementById('btn-shrine').onclick = () => {
+        UI.openModal('modal-shrine');
+    };
+    
+    document.getElementById('btn-bestiary').onclick = () => {
+        UI.openModal('modal-bestiary');
+    };
+    
+    document.getElementById('btn-achievements').onclick = () => {
+        UI.openModal('modal-achievements');
+    };
+    
+    document.getElementById('btn-new-game').onclick = () => {
+        if (confirm('Iniciar novo jogo? Progresso atual será perdido.')) {
+            SaveSystem.deleteSave();
+            location.reload();
+        }
+    };
+    
+    document.getElementById('btn-continue').onclick = () => {
+        UI.closeModal();
+    };
+}
+
+function handleInput(direction) {
+    if (window.gameState.combat.active) return;
+    
+    const { playerPos, map } = window.gameState.dungeon;
+    let newX = playerPos.x;
+    let newY = playerPos.y;
+    
+    switch (direction) {
+        case 'up': newY--; break;
+        case 'down': newY++; break;
+        case 'left': newX--; break;
+        case 'right': newX++; break;
+    }
+    
+    // Verificar limites
+    if (newX < 0 || newX >= MAP_WIDTH || newY < 0 || newY >= MAP_HEIGHT) return;
+    
+    // Verificar colisão com parede
+    if (map[newY][newX].type === 'wall') return;
+    
+    // Verificar inimigo adjacente (iniciativa do jogador)
+    if (map[newY][newX].enemy) {
+        Combat.start(newX, newY, false);
+        return;
+    }
+    
+    // Mover jogador
+    playerPos.x = newX;
+    playerPos.y = newY;
+    
+    // Atualizar visão
+    MapGen.updateVisibility();
+    
+    // Mover inimigos
+    EnemyAI.moveAllEnemies();
+    
+    // Verificar interações com tiles
+    const currentTile = map[newY][newX];
+    
+    if (currentTile.type === 'stairs') {
+        setTimeout(() => {
+            if (confirm('Descer para o próximo andar?')) {
+                MapGen.nextFloor();
+            }
+        }, 100);
+    } else if (currentTile.type === 'chest') {
+        MapGen.openChest(newX, newY);
+    } else if (currentTile.type === 'trap') {
+        MapGen.triggerTrap(newX, newY);
+    } else if (currentTile.type === 'secret') {
+        MapGen.discoverSecret(newX, newY);
+    }
+    
+    // Verificar emboscada (inimigo movendo para posição do jogador)
+    if (currentTile.enemy) {
+        Combat.start(newX, newY, true);
+        return;
+    }
+    
+    renderAll();
+}
+
+// --- FUNÇÃO DE INICIALIZAÇÃO ---
+function init() {
+    console.log('Depths of Solcesto V4.0 - Iniciando...');
+    
+    // Inicializar Canvas
+    Renderer.init();
+    
+    // Setup de eventos
+    setupEvents();
+    
+    // Tentar carregar save
+    if (SaveSystem.load()) {
+        console.log('Save carregado com sucesso.');
+        UI.openModal('modal-continue');
+    } else {
+        // Novo jogo
+        console.log('Novo jogo iniciado.');
+        showClassSelection();
+    }
+}
+
+function showClassSelection() {
+    const container = document.getElementById('class-selection');
+    container.innerHTML = '';
+    
+    ['Guerreiro', 'Ladino', 'Mago'].forEach(className => {
+        const classData = CLASS_DATA[className];
+        const btn = document.createElement('button');
+        btn.className = 'class-select-btn';
+        btn.innerHTML = `
+            <h3>${className}</h3>
+            <p>${classData.description}</p>
+            <small>HP: ${classData.baseStats.hp} | ATK: ${classData.baseStats.atk} | DEF: ${classData.baseStats.def}</small>
+        `;
+        btn.onclick = () => startNewGame(className);
+        container.appendChild(btn);
+    });
+    
+    UI.openModal('modal-class-select');
+}
+
+function startNewGame(className) {
+    const classData = CLASS_DATA[className];
+    
+    // Resetar estado
+    window.gameState = {
+        hero: {
+            className: className,
+            evolutionName: '',
+            level: 1,
+            xp: 0,
+            gold: 0,
+            totalGoldEarned: 0,
+            stats: { ...classData.baseStats },
+            bonusStats: { hp: 0, atk: 0, def: 0, matk: 0, mdef: 0, agi: 0, luk: 0 },
+            equipment: { weapon: null, armor: null, accessory: null },
+            inventory: [],
+            consumable: null,
+            skills: [{ ...classData.startingSkill }],
+            cooldowns: {},
+            buffs: []
+        },
+        dungeon: {
+            floor: 1,
+            modifier: null,
+            map: [],
+            playerPos: { x: 0, y: 0 },
+            visibleTiles: {}
+        },
+        combat: {
+            active: false,
+            enemy: null,
+            log: [],
+            autoBattle: false,
+            turn: 'player'
+        },
+        meta: window.gameState.meta
+    };
+    
+    Hero.recalcStats(window.gameState.hero);
+    MapGen.generateFloor(1);
+    
+    UI.closeModal();
+    renderAll();
+    
+    AudioSys.sfx.start();
+}
+
+// Iniciar quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</html>
+// --- FIM DA PARTE 3: UI, PERSISTÊNCIA E FINALIZAÇÃO ---

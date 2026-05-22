@@ -279,17 +279,20 @@
             padding: 15px;
             border-radius: 8px;
             cursor: pointer;
-            width: 140px;
+            width: 100%;
+            max-width: 300px;
             transition: transform 0.2s, border-color 0.2s, opacity 0.2s;
             color: #fff;
             text-align: left;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .class-select-btn h3 { margin: 0 0 5px 0; font-size: 1rem; color: var(--accent-color); }
-        .class-select-btn p { margin: 0 0 5px 0; font-size: 0.75rem; color: #aaa; }
-        .class-select-btn small { font-size: 0.7rem; color: #888; }
-        .class-select-btn:hover:not(.locked) { transform: scale(1.05); border-color: var(--accent-color); }
-        .class-select-btn.selected { border-color: var(--success-color); background: #2a3a2a; }
+        .class-select-btn strong { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--accent-color); }
+        .class-select-btn small { margin: 0 0 5px 0; font-size: 0.8rem; color: #aaa; text-align: center; }
+        .class-select-btn:hover:not(.locked) { transform: scale(1.02); border-color: var(--accent-color); }
+        .class-select-btn.selected { border-color: var(--success-color); background: #2a3a2a; box-shadow: 0 0 10px rgba(76, 175, 80, 0.5); }
         .class-select-btn.locked {
             opacity: 0.5;
             cursor: not-allowed;
@@ -300,18 +303,15 @@
             content: '🔒';
             position: absolute;
             top: 5px;
-            right: 5px;
-            font-size: 1rem;
+            right: 10px;
+            font-size: 1.2rem;
         }
-        .class-select-btn.locked .lock-info {
-            display: block;
-            font-size: 0.65rem;
-            color: var(--danger-color);
-            margin-top: 5px;
-            font-weight: bold;
-        }
-        .class-select-btn:not(.locked) .lock-info {
-            display: none;
+        .lock-info {
+            display: block !important;
+            font-size: 0.7rem !important;
+            color: var(--danger-color) !important;
+            margin-top: 5px !important;
+            font-weight: bold !important;
         }
         #btn-start-game { display: none; }
 
@@ -329,14 +329,14 @@
         <h1>Depths of Dungeon</h1>
         <p>V4.0 - Roguelite Dungeon Crawler</p>
         
-        <div style="margin: 20px 0; width: 100%; max-width: 300px;">
-            <label style="display:block; margin-bottom: 10px; color: #aaa;">Escolha sua Classe:</label>
-            <select id="class-selector" style="width: 100%; padding: 15px; font-size: 1rem; background: #333; color: #fff; border: 2px solid #555; border-radius: 8px; cursor: pointer;">
+        <div style="margin: 20px 0; width: 100%; max-width: 350px;">
+            <label style="display:block; margin-bottom: 15px; color: #aaa; font-size: 1.1rem;">Escolha sua Classe:</label>
+            <div id="class-buttons-container" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- Preenchido via JS -->
-            </select>
+            </div>
         </div>
         
-        <button id="btn-start-game" class="action-btn primary" style="width: 200px; margin-top: 10px;">INICIAR RUN</button>
+        <button id="btn-start-game" class="action-btn primary" style="width: 200px; margin-top: 20px; display: none;">INICIAR RUN</button>
         
         <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
             Toque para iniciar o áudio
@@ -2616,15 +2616,15 @@ function init() {
 }
 
 function showClassSelection() {
-    const selector = document.getElementById('class-selector');
+    const container = document.getElementById('class-buttons-container');
     const startBtn = document.getElementById('btn-start-game');
     
     console.log('=== showClassSelection INICIADA ===');
-    console.log('Selector existe:', !!selector);
+    console.log('Container existe:', !!container);
     console.log('StartBtn existe:', !!startBtn);
     
-    if (!selector) {
-        console.error('ERRO CRÍTICO: Elemento #class-selector NÃO encontrado no DOM!');
+    if (!container) {
+        console.error('ERRO CRÍTICO: Elemento #class-buttons-container NÃO encontrado no DOM!');
         alert('Erro de interface: elemento de seleção não encontrado. Verifique o console.');
         return;
     }
@@ -2634,8 +2634,8 @@ function showClassSelection() {
         return;
     }
     
-    // Limpar select
-    selector.innerHTML = '';
+    // Limpar container
+    container.innerHTML = '';
     startBtn.style.display = 'none';
     startBtn.onclick = null;
     
@@ -2652,63 +2652,54 @@ function showClassSelection() {
         'Monge': 'Alcance o Andar 12'
     };
     
-    // Opção padrão
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = '-- Selecione --';
-    selector.appendChild(defaultOption);
-    
-    let countUnlocked = 0;
+    let selectedClass = null;
     
     allClasses.forEach(className => {
         const isUnlocked = unlocked.includes(className);
-        const option = document.createElement('option');
-        option.value = className;
+        
+        // Criar botão da classe
+        const btn = document.createElement('button');
+        btn.className = 'class-select-btn';
+        if (!isUnlocked) btn.classList.add('locked');
+        
+        // Conteúdo do botão
+        let btnContent = `<strong>${className}</strong>`;
+        if (CLASS_DATA[className]) {
+            btnContent += `<br><small>${CLASS_DATA[className].description}</small>`;
+        }
+        if (!isUnlocked) {
+            btnContent += `<br><small class="lock-info">🔒 ${unlockInfo[className]}</small>`;
+        }
+        btn.innerHTML = btnContent;
         
         if (isUnlocked) {
-            option.textContent = className;
-            option.disabled = false;
-            countUnlocked++;
+            btn.onclick = function() {
+                // Remover seleção anterior
+                document.querySelectorAll('.class-select-btn').forEach(b => b.classList.remove('selected'));
+                // Adicionar seleção atual
+                this.classList.add('selected');
+                selectedClass = className;
+                
+                console.log('>>> Classe selecionada:', className);
+                window.gameState.hero.className = className;
+                
+                // Mostrar botão de iniciar
+                startBtn.style.display = 'block';
+                startBtn.textContent = `INICIAR RUN (${className})`;
+                startBtn.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('>>> Botão clicado! Iniciando com:', className);
+                    startNewGame(className);
+                };
+            };
             console.log(`  [OK] ${className} desbloqueada`);
         } else {
-            option.textContent = `${className} (🔒)`;
-            option.disabled = true;
+            btn.disabled = true;
             console.log(`  [LOCKED] ${className} - ${unlockInfo[className]}`);
         }
         
-        selector.appendChild(option);
+        container.appendChild(btn);
     });
-    
-    console.log(`Total de classes desbloqueadas: ${countUnlocked}`);
-    
-    // Evento onchange
-    selector.onchange = function(e) {
-        const val = this.value;
-        console.log('>>> onchange disparado! Valor:', val, '| Evento:', e);
-        console.log('>>> Classes desbloqueadas:', JSON.stringify(unlocked));
-        console.log('>>> Val é válido?', !!val);
-        console.log('>>> Val está em unlocked?', val ? unlocked.includes(val) : false);
-        
-        if (val && unlocked.includes(val)) {
-            console.log('>>> Classe válida selecionada:', val);
-            window.gameState.hero.className = val; // Atualiza o estado imediatamente
-            startBtn.style.display = 'block';
-            startBtn.textContent = `INICIAR RUN (${val})`;
-            startBtn.onclick = function(e2) {
-                e2.preventDefault();
-                console.log('>>> Botão clicado! Iniciando com:', val);
-                startNewGame(val);
-            };
-        } else {
-            console.log('>>> Classe inválida ou não desbloqueada. Escondendo botão.');
-            startBtn.style.display = 'none';
-        }
-    };
-    
-    // Fallback: evento click direto no select para mobile
-    selector.onclick = function() {
-        console.log('>>> Click no select detectado');
-    };
     
     console.log('=== showClassSelection CONCLUÍDA ===');
 }

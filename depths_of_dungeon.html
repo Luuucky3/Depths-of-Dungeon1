@@ -1619,7 +1619,11 @@ const Renderer = {
     
     resize: function() {
         const container = document.getElementById('map-container');
+        if (!container) return; // Segurança: sai se o container não existir
+        
         const size = Math.min(container.clientWidth, container.clientHeight);
+        if (size <= 0) return; // Segurança: sai se o tamanho for inválido
+        
         const scale = window.devicePixelRatio || 1;
         
         this.canvas.style.width = size + 'px';

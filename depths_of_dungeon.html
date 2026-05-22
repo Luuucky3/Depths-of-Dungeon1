@@ -1462,11 +1462,16 @@ const InputHandler = {
             });
         });
         
-        // Botões de ação
-        document.getElementById('btn-wait').addEventListener('click', () => Game.waitTurn());
-        document.getElementById('btn-flee').addEventListener('click', () => Combat.flee());
-        document.getElementById('btn-inventory').addEventListener('click', () => UI.openInventory());
-        document.getElementById('btn-skills').addEventListener('click', () => UI.openSkills());
+        // Botões de ação - apenas se existirem
+        const btnWait = document.getElementById('btn-wait');
+        const btnFlee = document.getElementById('btn-flee');
+        const btnInvAction = document.getElementById('btn-inventory');
+        const btnSkillsAction = document.getElementById('btn-skills');
+        
+        if (btnWait) btnWait.addEventListener('click', () => Game.waitTurn());
+        if (btnFlee) btnFlee.addEventListener('click', () => Combat.flee());
+        if (btnInvAction) btnInvAction.addEventListener('click', () => UI.openInventory());
+        if (btnSkillsAction) btnSkillsAction.addEventListener('click', () => UI.openSkills());
     }
 };
 
@@ -1618,7 +1623,7 @@ const Renderer = {
     },
     
     resize: function() {
-        const container = document.getElementById('map-container');
+        const container = document.getElementById('game-viewport');
         if (!container) return; // Segurança: sai se o container não existir
         
         const size = Math.min(container.clientWidth, container.clientHeight);
@@ -2478,50 +2483,45 @@ function setupEvents() {
         if (e.key === 'Escape') UI.closeModal();
     });
     
-    // Botões do header
-    document.getElementById('btn-inventory').onclick = () => UI.openModal('modal-inventory');
-    document.getElementById('btn-skills').onclick = () => UI.openModal('modal-skills');
-    document.getElementById('btn-hero').onclick = () => UI.openModal('modal-hero');
-    document.getElementById('btn-save').onclick = () => {
+    // Botões do header - apenas se existirem no HTML
+    const btnInv = document.getElementById('btn-inventory');
+    const btnSkills = document.getElementById('btn-skills');
+    const btnHero = document.getElementById('btn-hero');
+    const btnSave = document.getElementById('btn-save');
+    
+    if (btnInv) btnInv.onclick = () => UI.openModal('modal-inventory');
+    if (btnSkills) btnSkills.onclick = () => UI.openModal('modal-skills');
+    if (btnHero) btnHero.onclick = () => UI.openModal('modal-hero');
+    if (btnSave) btnSave.onclick = () => {
         SaveSystem.save();
         alert('Jogo salvo!');
     };
     
-    // Botões dos modais
+    // Botões dos modais - apenas se existirem no HTML
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.onclick = () => UI.closeModal();
     });
     
-    document.getElementById('btn-shop').onclick = () => {
-        UI.openModal('modal-shop');
-    };
+    const btnShop = document.getElementById('btn-shop');
+    const btnBlacksmith = document.getElementById('btn-blacksmith');
+    const btnShrine = document.getElementById('btn-shrine');
+    const btnBestiary = document.getElementById('btn-bestiary');
+    const btnAchievements = document.getElementById('btn-achievements');
+    const btnNewGame = document.getElementById('btn-new-game');
+    const btnContinue = document.getElementById('btn-continue');
     
-    document.getElementById('btn-blacksmith').onclick = () => {
-        UI.openModal('modal-blacksmith');
-    };
-    
-    document.getElementById('btn-shrine').onclick = () => {
-        UI.openModal('modal-shrine');
-    };
-    
-    document.getElementById('btn-bestiary').onclick = () => {
-        UI.openModal('modal-bestiary');
-    };
-    
-    document.getElementById('btn-achievements').onclick = () => {
-        UI.openModal('modal-achievements');
-    };
-    
-    document.getElementById('btn-new-game').onclick = () => {
+    if (btnShop) btnShop.onclick = () => UI.openModal('modal-shop');
+    if (btnBlacksmith) btnBlacksmith.onclick = () => UI.openModal('modal-blacksmith');
+    if (btnShrine) btnShrine.onclick = () => UI.openModal('modal-shrine');
+    if (btnBestiary) btnBestiary.onclick = () => UI.openModal('modal-bestiary');
+    if (btnAchievements) btnAchievements.onclick = () => UI.openModal('modal-achievements');
+    if (btnNewGame) btnNewGame.onclick = () => {
         if (confirm('Iniciar novo jogo? Progresso atual será perdido.')) {
             SaveSystem.deleteSave();
             location.reload();
         }
     };
-    
-    document.getElementById('btn-continue').onclick = () => {
-        UI.closeModal();
-    };
+    if (btnContinue) btnContinue.onclick = () => UI.closeModal();
 }
 
 function handleInput(direction) {

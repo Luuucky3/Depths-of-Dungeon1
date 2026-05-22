@@ -746,7 +746,7 @@ const Hero = {
             UI.log("A bomba explodiu sem alvo.", "info");
             success = true; 
         } else if (item.effect === 'teleport') {
-            MapGen.teleportPlayerToStairs();
+            DungeonGen.teleportPlayerToStairs();
             success = true;
         }
 
@@ -1530,7 +1530,7 @@ const Game = {
         AudioSys.sfx.step();
         
         // Atualiza visão
-        MapRenderer.updateVisibility();
+        DungeonGen.updateVisibility();
         
         // Inimigos se movem
         EnemyAI.update();
@@ -1582,7 +1582,7 @@ const Game = {
         dungeon.stairsPos = newDungeon.stairsPos;
         dungeon.entities = newDungeon.entities;
         
-        MapRenderer.updateVisibility();
+        DungeonGen.updateVisibility();
         UI.updateHeader();
         UI.renderCanvas();
     },
@@ -1973,7 +1973,7 @@ const UI = {
                 alert('Só pode usar bomba em combate!');
             }
         } else if (consumable.id === 'scroll_teleport') {
-            MapGen.findStairsAndMove();
+            DungeonGen.findStairsAndMove();
             AudioSys.sfx.teleport();
             used = true;
         }
@@ -2380,7 +2380,7 @@ const SaveSystem = {
             window.gameState.meta = data.meta;
             
             // Regenerar mapa para o andar atual
-            MapGen.generateFloor(window.gameState.dungeon.floor);
+            DungeonGen.generate(window.gameState.dungeon.floor);
             
             Hero.recalcStats(window.gameState.hero);
             renderAll();
@@ -2555,7 +2555,7 @@ function handleInput(direction) {
     playerPos.y = newY;
     
     // Atualizar visão
-    MapGen.updateVisibility();
+    DungeonGen.updateVisibility();
     
     // Mover inimigos
     EnemyAI.moveAllEnemies();
@@ -2566,15 +2566,15 @@ function handleInput(direction) {
     if (currentTile.type === 'stairs') {
         setTimeout(() => {
             if (confirm('Descer para o próximo andar?')) {
-                MapGen.nextFloor();
+                DungeonGen.nextFloor();
             }
         }, 100);
     } else if (currentTile.type === 'chest') {
-        MapGen.openChest(newX, newY);
+        DungeonGen.openChest(newX, newY);
     } else if (currentTile.type === 'trap') {
-        MapGen.triggerTrap(newX, newY);
+        DungeonGen.triggerTrap(newX, newY);
     } else if (currentTile.type === 'secret') {
-        MapGen.discoverSecret(newX, newY);
+        DungeonGen.discoverSecret(newX, newY);
     }
     
     // Verificar emboscada (inimigo movendo para posição do jogador)
@@ -2735,7 +2735,8 @@ function startNewGame(className) {
             consumable: null,
             skills: [{ ...classData.startingSkill }],
             cooldowns: {},
-            buffs: []
+            buffs: [],
+            curses: []
         },
         dungeon: {
             floor: 1,
@@ -2756,7 +2757,7 @@ function startNewGame(className) {
     };
     
     Hero.recalcStats(window.gameState.hero);
-    MapGen.generateFloor(1);
+    DungeonGen.generate(1);
     
     UI.closeModal();
     renderAll();
